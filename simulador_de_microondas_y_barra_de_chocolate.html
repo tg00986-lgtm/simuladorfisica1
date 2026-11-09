@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Microondas y Chocolate</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        chocolate: {
+                            500: '#7B3F00',
+                            600: '#5C2E00',
+                            700: '#3D1E00',
+                            melt: '#FF7700'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            user-select: none;
+        }
+        /* Custom scrollbar for control panels */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 3px;
+        }
+        canvas {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col justify-between">
+
+    <!-- Header / Navbar -->
+    <header class="border-b border-gray-800 bg-gray-900/80 backdrop-blur px-6 py-4 flex flex-wrap justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-amber-600/20 text-amber-500 rounded-lg border border-amber-500/30">
+                <i data-lucide="zap" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight text-gray-100">Simulador de Microondas & Chocolate</h1>
+                <p class="text-xs text-gray-400">Demostración interactiva de ondas estacionarias y velocidad de la luz</p>
+            </div>
+        </div>
+
+        <!-- Quick Stats Badge -->
+        <div class="flex items-center gap-4 bg-gray-950 border border-gray-800 rounded-xl px-4 py-2">
+            <div class="text-center">
+                <div class="text-[10px] uppercase tracking-wider text-gray-400">Longitud (λ)</div>
+                <div id="stat-lambda" class="font-mono font-semibold text-cyan-400 text-sm">12.24 cm</div>
+            </div>
+            <div class="h-6 w-px bg-gray-800"></div>
+            <div class="text-center">
+                <div class="text-[10px] uppercase tracking-wider text-gray-400">Frecuencia (f)</div>
+                <div id="stat-freq" class="font-mono font-semibold text-amber-400 text-sm">2.45 GHz</div>
+            </div>
+            <div class="h-6 w-px bg-gray-800"></div>
+            <div class="text-center">
+                <div class="text-[10px] uppercase tracking-wider text-gray-400">Velocidad (c)</div>
+                <div id="stat-c" class="font-mono font-bold text-emerald-400 text-sm">2.998 × 10⁸ m/s</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+        <!-- Controls Sidebar -->
+        <aside class="lg:col-span-1 bg-gray-900 border border-gray-800 rounded-2xl p-5 flex flex-col gap-6 justify-between shadow-xl">
+            <div class="space-y-6">
+                <h2 class="font-semibold text-gray-200 border-b border-gray-800 pb-2 flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i> Parámetros de la Onda
+                </h2>
+
+                <!-- Control: Turntable Toggle -->
+                <div class="bg-gray-950/60 p-3 rounded-xl border border-gray-800">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-300">Plato Giratorio</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="toggle-turntable" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                        </label>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-2">
+                        Desactívalo para observar el derretimiento focalizado en los antinodos.
+                    </p>
+                </div>
+
+                <!-- Control: Frequency Slider -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <label for="freq-slider" class="text-gray-300 font-medium">Frecuencia ($f$)</label>
+                        <span id="freq-val" class="font-mono text-amber-400">2.45 GHz</span>
+                    </div>
+                    <input type="range" id="freq-slider" min="1.00" max="4.00" step="0.05" value="2.45"
+                           class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                    <div class="flex justify-between text-[10px] text-gray-500">
+                        <span>1.00 GHz</span>
+                        <span>4.00 GHz</span>
+                    </div>
+                </div>
+
+                <!-- Control: Wavelength Slider -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <label for="lambda-slider" class="text-gray-300 font-medium">Longitud de onda ($\lambda$)</label>
+                        <span id="lambda-val" class="font-mono text-cyan-400">12.24 cm</span>
+                    </div>
+                    <input type="range" id="lambda-slider" min="7.5" max="25.0" step="0.1" value="12.24"
+                           class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+                    <div class="flex justify-between text-[10px] text-gray-500">
+                        <span>7.5 cm</span>
+                        <span>25.0 cm</span>
+                    </div>
+                </div>
+
+                <!-- Control: Power / Microwave Heat Rate -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <label for="power-slider" class="text-gray-300 font-medium">Potencia Microondas</label>
+                        <span id="power-val" class="font-mono text-red-400">800 W</span>
+                    </div>
+                    <input type="range" id="power-slider" min="200" max="1200" step="100" value="800"
+                           class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-red-500">
+                </div>
+
+                <!-- Tools & Layer Display Options -->
+                <div class="space-y-3 border-t border-gray-800 pt-4">
+                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Capas y Herramientas</h3>
+                    
+                    <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-300">
+                        <input type="checkbox" id="chk-show-ruler" checked class="rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0">
+                        <span>Regla de Medición Virtual</span>
+                    </label>
+
+                    <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-300">
+                        <input type="checkbox" id="chk-show-nodes" checked class="rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0">
+                        <span>Marcar Nodos / Antinodos</span>
+                    </label>
+
+                    <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-300">
+                        <input type="checkbox" id="chk-show-wave" checked class="rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0">
+                        <span>Mostrar Onda Electromagnética</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="space-y-3 pt-4 border-t border-gray-800">
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="btn-play" class="flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white font-medium py-2.5 px-4 rounded-xl transition shadow-lg shadow-amber-600/20">
+                        <i data-lucide="play" class="w-4 h-4"></i> <span id="btn-play-text">Iniciar</span>
+                    </button>
+                    <button id="btn-reset" class="flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium py-2.5 px-4 rounded-xl transition border border-gray-700">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reiniciar
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Canvas and Interactive Area -->
+        <section class="lg:col-span-3 flex flex-col gap-4">
+            <!-- Main Canvas Box -->
+            <div class="relative bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-2xl flex-1 min-h-[420px] flex flex-col justify-center items-center">
+                <!-- Canvas Element -->
+                <canvas id="simCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+
+                <!-- Overlay Info Box -->
+                <div class="absolute top-4 left-4 bg-gray-950/80 backdrop-blur border border-gray-800 rounded-xl px-3 py-2 text-xs font-mono text-gray-300 flex items-center gap-3">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                        <span>Onda Estacionaria</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span>Puntos Calientes (Antinodos)</span>
+                    </div>
+                </div>
+
+                <!-- Instruction Tooltip -->
+                <div id="canvas-help" class="absolute bottom-4 left-4 right-4 md:left-auto bg-gray-950/90 border border-gray-800 rounded-xl px-4 py-2.5 text-xs text-gray-400 backdrop-blur flex items-center gap-2">
+                    <i data-lucide="mouse-pointer" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                    <span>Arrastra los extremos de la <b>Regla Virtual</b> para medir la distancia entre zonas derretidas ($\Delta x = \lambda/2$).</span>
+                </div>
+            </div>
+
+            <!-- Mathematical Formula Breakdown & Physics Info -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex flex-col justify-between">
+                    <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Distancia entre Puntos</span>
+                    <div class="mt-2 flex items-baseline gap-2">
+                        <span id="calc-dist" class="text-2xl font-bold font-mono text-cyan-400">6.12</span>
+                        <span class="text-gray-400 text-sm">cm ($\lambda / 2$)</span>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-1">Distancia medida entre dos antinodos adyacentes donde se derrite el chocolate.</p>
+                </div>
+
+                <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex flex-col justify-between">
+                    <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Cálculo de la Velocidad</span>
+                    <div class="mt-2 font-mono text-amber-400 text-sm">
+                        $c = f \cdot \lambda = f \cdot (2 \cdot \Delta x)$
+                    </div>
+                    <div id="calc-formula-detail" class="text-xs font-mono text-gray-300 mt-1">
+                        $c = (2.45\text{ GHz}) \cdot (12.24\text{ cm})$
+                    </div>
+                </div>
+
+                <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex flex-col justify-between">
+                    <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Resultado Calculado</span>
+                    <div class="mt-2 flex items-baseline gap-2">
+                        <span id="calc-c-result" class="text-2xl font-bold font-mono text-emerald-400">2.998 × 10⁸</span>
+                        <span class="text-gray-400 text-sm">m/s</span>
+                    </div>
+                    <p id="error-margin" class="text-[11px] text-emerald-500 mt-1">Error respecto a valor real: 0.00%</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800 bg-gray-950 px-6 py-3 text-center text-xs text-gray-500">
+        Simulación interactiva de Física Electromagnética &bull; Desarrollada para demostraciones educativas de laboratorio virtual.
+    </footer>
+
+    <!-- Interactive Script -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // --- Canvas Setup ---
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- State Variables ---
+        let isRunning = false;
+        let animationFrameId = null;
+        let time = 0;
+
+        // Physics Parameters
+        let frequency = 2.45; // GHz (10^9 Hz)
+        let wavelength = 12.24; // cm
+        const c_real = 299792458; // m/s
+        let powerWatts = 800;
+        let isTurntableOn = false;
+
+        // Visual Display Flags
+        let showRuler = true;
+        let showNodes = true;
+        let showWave = true;
+
+        // Grid Scale & Chocolate Dimensions
+        // Canvas coordinate space: 1cm = X pixels
+        let pixelsPerCm = 20; 
+        const chocolateLengthCm = 25; // 25 cm chocolate bar
+        const chocolateWidthCm = 6;  // 6 cm width
+
+        // Thermal Data Array (for melting simulation)
+        // Array of thermal energy accumulated across the chocolate length
+        const numSegments = 250;
+        let meltPoints = new Float32Array(numSegments).fill(0); // 0.0 (solid) to 1.0 (fully melted)
+
+        // Ruler Drag Handles
+        let ruler = {
+            x1: 0,
+            y1: 0,
+            x2: 0,
+            y2: 0,
+            isDragging1: false,
+            isDragging2: false,
+            isDraggingRuler: false,
+            dragOffsetX: 0,
+            dragOffsetY: 0
+        };
+
+        // DOM Element References
+        const btnPlay = document.getElementById('btn-play');
+        const btnPlayText = document.getElementById('btn-play-text');
+        const btnReset = document.getElementById('btn-reset');
+
+        const freqSlider = document.getElementById('freq-slider');
+        const lambdaSlider = document.getElementById('lambda-slider');
+        const powerSlider = document.getElementById('power-slider');
+        const toggleTurntable = document.getElementById('toggle-turntable');
+
+        const freqVal = document.getElementById('freq-val');
+        const lambdaVal = document.getElementById('lambda-val');
+        const powerVal = document.getElementById('power-val');
+
+        const statLambda = document.getElementById('stat-lambda');
+        const statFreq = document.getElementById('stat-freq');
+        const statC = document.getElementById('stat-c');
+
+        const calcDist = document.getElementById('calc-dist');
+        const calcFormulaDetail = document.getElementById('calc-formula-detail');
+        const calcCResult = document.getElementById('calc-c-result');
+        const errorMargin = document.getElementById('error-margin');
+
+        const chkShowRuler = document.getElementById('chk-show-ruler');
+        const chkShowNodes = document.getElementById('chk-show-nodes');
+        const chkShowWave = document.getElementById('chk-show-wave');
+
+        // Resize Canvas dynamically
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+
+            // Recalculate pixels per cm so chocolate fits nicely
+            pixelsPerCm = Math.min(canvas.width / 32, 24);
+
+            // Initialize Ruler Position if first load
+            if (ruler.x1 === 0 && ruler.y1 === 0) {
+                resetRulerPosition();
+            }
+            draw();
+        }
+
+        function resetRulerPosition() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2 + 100;
+            const halfWavePx = (wavelength / 2) * pixelsPerCm;
+
+            ruler.x1 = centerX - halfWavePx / 2;
+            ruler.y1 = centerY;
+            ruler.x2 = centerX + halfWavePx / 2;
+            ruler.y2 = centerY;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- Physics Calculations & Sync ---
+        function updatePhysics(source = 'freq') {
+            if (source === 'freq') {
+                // c = f * lambda => lambda = c / f
+                // f in GHz (10^9), lambda in cm (10^-2)
+                // c = 2.99792e10 cm/s
+                wavelength = (c_real / (frequency * 1e9)) * 100; // cm
+                lambdaSlider.value = wavelength.toFixed(2);
+            } else if (source === 'lambda') {
+                // f = c / lambda
+                frequency = (c_real / ((wavelength / 100) * 1e9));
+                freqSlider.value = frequency.toFixed(2);
+            }
+
+            // Sync Displays
+            freqVal.textContent = `${frequency.toFixed(2)} GHz`;
+            lambdaVal.textContent = `${wavelength.toFixed(2)} cm`;
+            powerVal.textContent = `${powerWatts} W`;
+
+            statFreq.textContent = `${frequency.toFixed(2)} GHz`;
+            statLambda.textContent = `${wavelength.toFixed(2)} cm`;
+
+            const computedC = (frequency * 1e9) * (wavelength / 100);
+            statC.textContent = `${(computedC / 1e8).toFixed(3)} × 10⁸ m/s`;
+
+            // Update calculations section
+            const halfLambda = wavelength / 2;
+            calcDist.textContent = halfLambda.toFixed(2);
+            calcFormulaDetail.textContent = `c = (${frequency.toFixed(2)} GHz) × (${wavelength.toFixed(2)} cm)`;
+            calcCResult.textContent = `${(computedC / 1e8).toFixed(3)} × 10⁸`;
+
+            const err = Math.abs((computedC - c_real) / c_real) * 100;
+            errorMargin.textContent = `Error respecto a c real: ${err.toFixed(2)}%`;
+
+            draw();
+        }
+
+        // --- Thermal Accumulation Simulation ---
+        function updateThermalState(dt) {
+            if (!isRunning) return;
+
+            time += dt * 5;
+
+            const speedFactor = (powerWatts / 800) * 0.015;
+
+            for (let i = 0; i < numSegments; i++) {
+                // Segment position in cm relative to chocolate start
+                const segPosCm = (i / numSegments) * chocolateLengthCm;
+                
+                // Position relative to oven cavity
+                const cavityX = segPosCm - chocolateLengthCm / 2;
+
+                let waveIntensity = 0;
+
+                if (isTurntableOn) {
+                    // When turntable rotates, heat distributes more uniformly
+                    const rotPhase = time * 0.5;
+                    const rotX = cavityX * Math.cos(rotPhase);
+                    // Average field strength
+                    const val = Math.sin((2 * Math.PI * rotX) / wavelength);
+                    waveIntensity = val * val;
+                } else {
+                    // Stationary Wave: E(x) = E0 * sin(2*pi*x / lambda)
+                    // Heat generated is proportional to Intensity = |E|^2 = sin^2(2*pi*x / lambda)
+                    const val = Math.sin((2 * Math.PI * cavityX) / wavelength);
+                    waveIntensity = val * val; // Ranges 0.0 to 1.0
+                }
+
+                // Heat accumulation over time
+                meltPoints[i] = Math.min(1.0, meltPoints[i] + waveIntensity * speedFactor);
+            }
+        }
+
+        // --- Render Engine ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // 1. Draw Microwave Cavity Background Grid
+            drawCavityBackground(centerX, centerY);
+
+            // 2. Draw Electromagnetic Wave (Standing Wave)
+            if (showWave) {
+                drawStandingWave(centerX, centerY - 60);
+            }
+
+            // 3. Draw Nodes and Antinodes Indicators
+            if (showNodes) {
+                drawNodesAndAntinodes(centerX, centerY - 60);
+            }
+
+            // 4. Draw Chocolate Bar with Melting Visuals
+            drawChocolateBar(centerX, centerY + 40);
+
+            // 5. Draw Measuring Ruler
+            if (showRuler) {
+                drawRuler();
+            }
+        }
+
+        // --- Drawing Helper Functions ---
+
+        function drawCavityBackground(cx, cy) {
+            // Draw metallic oven walls
+            const cavityWidth = chocolateLengthCm * pixelsPerCm + 100;
+            const cavityHeight = 320;
+
+            ctx.save();
+            ctx.strokeStyle = '#374151';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(cx - cavityWidth / 2, cy - cavityHeight / 2, cavityWidth, cavityHeight);
+
+            // Subtle grid
+            ctx.strokeStyle = '#1f2937';
+            ctx.lineWidth = 1;
+            const gridSize = 20;
+            for (let x = cx - cavityWidth / 2; x < cx + cavityWidth / 2; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, cy - cavityHeight / 2);
+                ctx.lineTo(x, cy + cavityHeight / 2);
+                ctx.stroke();
+            }
+            for (let y = cy - cavityHeight / 2; y < cy + cavityHeight / 2; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(cx - cavityWidth / 2, y);
+                ctx.lineTo(cx + cavityWidth / 2, y);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawStandingWave(cx, cy) {
+            const waveWidthPx = chocolateLengthCm * pixelsPerCm + 60;
+            const amplitude = 45;
+            const k = (2 * Math.PI) / (wavelength * pixelsPerCm); // wave vector
+
+            ctx.save();
+
+            // Draw envelope (dashed guide lines)
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+
+            // Top Envelope
+            ctx.beginPath();
+            for (let x = -waveWidthPx / 2; x <= waveWidthPx / 2; x += 2) {
+                const env = Math.abs(Math.sin(k * x)) * amplitude;
+                if (x === -waveWidthPx / 2) ctx.moveTo(cx + x, cy - env);
+                else ctx.lineTo(cx + x, cy - env);
+            }
+            ctx.stroke();
+
+            // Bottom Envelope
+            ctx.beginPath();
+            for (let x = -waveWidthPx / 2; x <= waveWidthPx / 2; x += 2) {
+                const env = Math.abs(Math.sin(k * x)) * amplitude;
+                if (x === -waveWidthPx / 2) ctx.moveTo(cx + x, cy + env);
+                else ctx.lineTo(cx + x, cy + env);
+            }
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+
+            // Draw Dynamic Oscillating Electric Field Wave
+            const osc = Math.cos(time * 6); // Time oscillation factor
+            ctx.strokeStyle = '#38bdf8'; // Cyan E-field
+            ctx.lineWidth = 3;
+            ctx.shadowColor = '#0284c7';
+            ctx.shadowBlur = 8;
+
+            ctx.beginPath();
+            for (let x = -waveWidthPx / 2; x <= waveWidthPx / 2; x += 2) {
+                const y = Math.sin(k * x) * amplitude * osc;
+                if (x === -waveWidthPx / 2) ctx.moveTo(cx + x, cy + y);
+                else ctx.lineTo(cx + x, cy + y);
+            }
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function drawNodesAndAntinodes(cx, cy) {
+            const waveWidthPx = chocolateLengthCm * pixelsPerCm + 60;
+            const k = (2 * Math.PI) / (wavelength * pixelsPerCm);
+
+            ctx.save();
+            ctx.font = '10px monospace';
+            ctx.textAlign = 'center';
+
+            for (let x = -waveWidthPx / 2; x <= waveWidthPx / 2; x += 1) {
+                const sinVal = Math.sin(k * x);
+                
+                // Antinode (Peak / Maximum energy)
+                if (Math.abs(Math.abs(sinVal) - 1.0) < 0.02 && Math.abs(x % (wavelength * pixelsPerCm / 2)) < 2) {
+                    ctx.fillStyle = '#ef4444'; // Red
+                    ctx.beginPath();
+                    ctx.arc(cx + x, cy, 4, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#fca5a5';
+                    ctx.fillText('Antinodo', cx + x, cy - 55);
+                    ctx.fillText('(Calor)', cx + x, cy - 44);
+                }
+
+                // Node (Zero amplitude / Cold point)
+                if (Math.abs(sinVal) < 0.02 && Math.abs(x % (wavelength * pixelsPerCm / 2)) < 2) {
+                    ctx.fillStyle = '#9ca3af'; // Gray
+                    ctx.beginPath();
+                    ctx.arc(cx + x, cy, 3, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#9ca3af';
+                    ctx.fillText('Nodo', cx + x, cy + 55);
+                }
+            }
+            ctx.restore();
+        }
+
+        function drawChocolateBar(cx, cy) {
+            const barWidth = chocolateLengthCm * pixelsPerCm;
+            const barHeight = chocolateWidthCm * pixelsPerCm;
+            const startX = cx - barWidth / 2;
+            const startY = cy - barHeight / 2;
+
+            ctx.save();
+
+            // 1. Chocolate Shadow
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+            ctx.shadowBlur = 12;
+            ctx.shadowOffsetY = 6;
+
+            // 2. Base Solid Chocolate Bar
+            ctx.fillStyle = '#3D1E00'; // Dark chocolate base
+            ctx.beginPath();
+            ctx.roundRect(startX, startY, barWidth, barHeight, 8);
+            ctx.fill();
+
+            ctx.shadowBlur = 0; // Reset shadow for segments
+
+            // 3. Grid Pattern on Chocolate Bar (Square segments)
+            const cols = 16;
+            const rows = 3;
+            const cellW = barWidth / cols;
+            const cellH = barHeight / rows;
+
+            ctx.strokeStyle = '#281300';
+            ctx.lineWidth = 1.5;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    ctx.strokeRect(startX + c * cellW + 2, startY + r * cellH + 2, cellW - 4, cellH - 4);
+                }
+            }
+
+            // 4. Render Thermal Heat / Melted Spots
+            for (let i = 0; i < numSegments; i++) {
+                const melt = meltPoints[i];
+                if (melt > 0.05) {
+                    const segX = startX + (i / numSegments) * barWidth;
+                    const segW = barWidth / numSegments + 1;
+
+                    // Melt gradient color: from solid brown -> glossy caramel/orange hot liquid
+                    const alpha = Math.min(1.0, melt * 1.2);
+                    
+                    // Create liquid melt spots
+                    const gradient = ctx.createLinearGradient(0, startY, 0, startY + barHeight);
+                    gradient.addColorStop(0, `rgba(239, 68, 68, ${alpha * 0.8})`);
+                    gradient.addColorStop(0.5, `rgba(249, 115, 22, ${alpha})`);
+                    gradient.addColorStop(1, `rgba(239, 68, 68, ${alpha * 0.8})`);
+
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(segX, startY + 2, segW, barHeight - 4);
+
+                    // Add liquid shine gloss effect on melted spots
+                    if (melt > 0.5) {
+                        ctx.fillStyle = `rgba(255, 255, 255, ${melt * 0.25})`;
+                        ctx.fillRect(segX, startY + barHeight * 0.3, segW, barHeight * 0.4);
+                    }
+                }
+            }
+
+            // 5. Border highlight
+            ctx.strokeStyle = '#5C2E00';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(startX, startY, barWidth, barHeight, 8);
+            ctx.stroke();
+
+            // Label on Chocolate
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('BARRA DE CHOCOLATE', cx, cy + 4);
+
+            ctx.restore();
+        }
+
+        function drawRuler() {
+            ctx.save();
+
+            // Ruler Line
+            ctx.strokeStyle = '#f59e0b'; // Amber ruler
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(ruler.x1, ruler.y1);
+            ctx.lineTo(ruler.x2, ruler.y2);
+            ctx.stroke();
+
+            // Distance in Pixels & cm
+            const dx = ruler.x2 - ruler.x1;
+            const dy = ruler.y2 - ruler.y1;
+            const distPx = Math.hypot(dx, dy);
+            const distCm = distPx / pixelsPerCm;
+
+            // Draw Draggable End Handles
+            drawRulerHandle(ruler.x1, ruler.y1, ruler.isDragging1);
+            drawRulerHandle(ruler.x2, ruler.y2, ruler.isDragging2);
+
+            // Distance Badge in Center of Ruler
+            const midX = (ruler.x1 + ruler.x2) / 2;
+            const midY = (ruler.y1 + ruler.y2) / 2;
+
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.roundRect(midX - 45, midY - 14, 90, 28, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${distCm.toFixed(2)} cm`, midX, midY);
+
+            ctx.restore();
+        }
+
+        function drawRulerHandle(x, y, isDragged) {
+            ctx.fillStyle = isDragged ? '#f59e0b' : '#1e293b';
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(x, y, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = isDragged ? '#ffffff' : '#f59e0b';
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // --- Dragging & Interaction Handling ---
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+            const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function isNearPoint(x1, y1, x2, y2, radius = 15) {
+            return Math.hypot(x1 - x2, y1 - y2) < radius;
+        }
+
+        function handlePointerDown(e) {
+            const pos = getMousePos(e);
+
+            if (isNearPoint(pos.x, pos.y, ruler.x1, ruler.y1)) {
+                ruler.isDragging1 = true;
+            } else if (isNearPoint(pos.x, pos.y, ruler.x2, ruler.y2)) {
+                ruler.isDragging2 = true;
+            } else {
+                // Check if clicking near ruler center line to drag whole ruler
+                const midX = (ruler.x1 + ruler.x2) / 2;
+                const midY = (ruler.y1 + ruler.y2) / 2;
+                if (isNearPoint(pos.x, pos.y, midX, midY, 30)) {
+                    ruler.isDraggingRuler = true;
+                    ruler.dragOffsetX = pos.x - midX;
+                    ruler.dragOffsetY = pos.y - midY;
+                }
+            }
+        }
+
+        function handlePointerMove(e) {
+            const pos = getMousePos(e);
+
+            if (ruler.isDragging1) {
+                ruler.x1 = pos.x;
+                ruler.y1 = pos.y;
+                draw();
+            } else if (ruler.isDragging2) {
+                ruler.x2 = pos.x;
+                ruler.y2 = pos.y;
+                draw();
+            } else if (ruler.isDraggingRuler) {
+                const currentMidX = (ruler.x1 + ruler.x2) / 2;
+                const currentMidY = (ruler.y1 + ruler.y2) / 2;
+                const dx = (pos.x - ruler.dragOffsetX) - currentMidX;
+                const dy = (pos.y - ruler.dragOffsetY) - currentMidY;
+
+                ruler.x1 += dx;
+                ruler.y1 += dy;
+                ruler.x2 += dx;
+                ruler.y2 += dy;
+                draw();
+            }
+        }
+
+        function handlePointerUp() {
+            ruler.isDragging1 = false;
+            ruler.isDragging2 = false;
+            ruler.isDraggingRuler = false;
+        }
+
+        canvas.addEventListener('mousedown', handlePointerDown);
+        canvas.addEventListener('mousemove', handlePointerMove);
+        window.addEventListener('mouseup', handlePointerUp);
+
+        canvas.addEventListener('touchstart', handlePointerDown, { passive: true });
+        canvas.addEventListener('touchmove', handlePointerMove, { passive: true });
+        window.addEventListener('touchend', handlePointerUp);
+
+        // --- Main Simulation Loop ---
+        let lastTime = performance.now();
+
+        function gameLoop(now) {
+            const dt = (now - lastTime) / 1000;
+            lastTime = now;
+
+            if (isRunning) {
+                updateThermalState(dt);
+            }
+
+            draw();
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // --- Event Listeners for UI Controls ---
+        btnPlay.addEventListener('click', () => {
+            isRunning = !isRunning;
+            if (isRunning) {
+                btnPlay.classList.remove('bg-amber-600', 'hover:bg-amber-500');
+                btnPlay.classList.add('bg-red-600', 'hover:bg-red-500');
+                btnPlayText.textContent = 'Pausar';
+                btnPlay.querySelector('i').setAttribute('data-lucide', 'pause');
+            } else {
+                btnPlay.classList.remove('bg-red-600', 'hover:bg-red-500');
+                btnPlay.classList.add('bg-amber-600', 'hover:bg-amber-500');
+                btnPlayText.textContent = 'Reanudar';
+                btnPlay.querySelector('i').setAttribute('data-lucide', 'play');
+            }
+            lucide.createIcons();
+        });
+
+        btnReset.addEventListener('click', () => {
+            isRunning = false;
+            time = 0;
+            meltPoints.fill(0);
+
+            btnPlay.classList.remove('bg-red-600', 'hover:bg-red-500');
+            btnPlay.classList.add('bg-amber-600', 'hover:bg-amber-500');
+            btnPlayText.textContent = 'Iniciar';
+            btnPlay.querySelector('i').setAttribute('data-lucide', 'play');
+            lucide.createIcons();
+
+            resetRulerPosition();
+            draw();
+        });
+
+        freqSlider.addEventListener('input', (e) => {
+            frequency = parseFloat(e.target.value);
+            updatePhysics('freq');
+        });
+
+        lambdaSlider.addEventListener('input', (e) => {
+            wavelength = parseFloat(e.target.value);
+            updatePhysics('lambda');
+        });
+
+        powerSlider.addEventListener('input', (e) => {
+            powerWatts = parseInt(e.target.value);
+            powerVal.textContent = `${powerWatts} W`;
+        });
+
+        toggleTurntable.addEventListener('change', (e) => {
+            isTurntableOn = e.target.checked;
+        });
+
+        chkShowRuler.addEventListener('change', (e) => {
+            showRuler = e.target.checked;
+            draw();
+        });
+
+        chkShowNodes.addEventListener('change', (e) => {
+            showNodes = e.target.checked;
+            draw();
+        });
+
+        chkShowWave.addEventListener('change', (e) => {
+            showWave = e.target.checked;
+            draw();
+        });
+
+        // Initial launch
+        window.onload = () => {
+            resizeCanvas();
+            updatePhysics('freq');
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
